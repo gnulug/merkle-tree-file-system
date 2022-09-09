@@ -1,5 +1,7 @@
 # Maintaining Merkle Trees at the filesystem level
 
+by Samuel Grayson
+
 Merkle Tree datastructures are widely used for comparing file trees, but they can be expensive to compute.
 The contribution of this work will be a design, implementation, and evaluation of a system that maintains a Merkle Tree at the filesystem level.
 Every file operation in the filesystem is augmented to incrementally maintain the full or partial Merkle Tree, from which computin the full Merkle Tree should be faster than doing so from scratch.
@@ -12,8 +14,8 @@ A Merkle Tree is a tree datastructure that makes it easy to test if two trees ar
 Every node `n` stores a hash `n.hash` based on its children `n.children` and the data at that node `n.data` is a hash of the concatenation of the hashes of the children and the hash of the data at that node.
 In pseudo-Python: `n.hash = hash(concatenate_strings(append([child.hash | for child in sorted(n.children)], hash(n.data))))`.
 If two nodes have the same hash, then barring a hash-collision, they have the same `child.hash`, so all of their descendants are the same too, with high-probability.
-We can detect if two Merkle Trees are identical in \(\mathcal O(1)\) by comparing the root node hash.
-If not, we can find each of the \(k\) differing node in a \(h\)-tall \(\mathcal O(k h)\); Usually \(h = \log(n)\), where \(n\) is the number of nodes.
+We can detect if two Merkle Trees are identical in $\mathcal O(1)$ by comparing the root node hash.
+If not, we can find each of the $k$ differing node in a $h$-tall $\mathcal O(k h)$; Usually $h = \log(n)$, where $n$ is the number of nodes.
 This even offers an opportunity for deduplicated storage: if two Merkle Tree nodes have the same hash, they only need to be stored once.
 
 ## Motivation
@@ -40,7 +42,7 @@ These operations are commonly applied in file synchronization and version contro
 Merkle Tree algorithms give a speedup on random changes to the file tree, but the real world should benefit even more than those results would predict.
 In the real world, file changes are not random; they are often localized to just a few high-churn directories.
 For example, if one is developing a new controller for a web application, most of their changes will likely be in a directory dedicated to that controller.
-If there are \(k\) diferences in the same directory, a Merkle Tree will find them in \(\mathcal O(k + h)\) rather than \(\mathcal O(kh)\) when the changes were in random directories.
+If there are $k$ diferences in the same directory, a Merkle Tree will find them in $\mathcal O(k + h)$ rather than $\mathcal O(kh)$ when the changes were in random directories.
 
 ## Prior Work
 
@@ -93,7 +95,7 @@ As far as I know, this has not been evaluated in prior literature, so it remains
 I will call the hypothetical implementation, MTFS (Merkle Tree File System).
 
 This can be easily implemented natively in Linux without modifying the kernel by a Filesystem in USErspace (FUSE) [[libfuse github][libfuse github]].
-There are even third-party projects for MacOS [[osxfuse github][osxfuse github]] and Windows [[winsfp github][winsfp github]] that implement FUSE.
+There are even third-party projects for MacOS [[osxfuse github][osxfuse github]] and Windows [[winfsp github][winfsp github]] that implement FUSE.
 The user would ask MTFS to mount a FUSE at a specified mount-point.
 The MTFS FUSE process would proxy requests from that mount-point to a private store on top of a normal filesystem.
 MTFS should expose a server where applications can ask MTFS to compute the hash of a directory.
@@ -150,7 +152,7 @@ I expect macrobenchmarks (`rsync` and `git`) runtimes on MTFS to somewhat prefor
 I expect the deep filesystems with few changes will incur the greatest write overhead in MTFS; it requires invalidations all the way up the tree, and those invalidations are not amortized across many writes.
 If the macrobenchmark performance is usually faster by more than 10% and 2 seconds and the write performance is not slower by 10% or 30ms, then I would conclude that MTFS could be useful in those applications and use-case sizes.
 
-# License for this file (not the code)
+# License for this file
 
 <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
 
@@ -158,7 +160,7 @@ If the macrobenchmark performance is usually faster by more than 10% and 2 secon
 [man rsync]: https://linux.die.net/man/1/rsync
 [Goode and Rain]: https://engineering.fb.com/2014/01/07/core-data/scaling-mercurial-at-facebook/
 [Stackexchange]: https://serverfault.com/a/893412
-[libfuse-github]: https://github.com/libfuse/libfuse
+[libfuse github]: https://github.com/libfuse/libfuse
 [osxfuse github]: https://github.com/osxfuse/osxfuse
 [winfsp github]: https://github.com/winfsp/winfsp
 [xxhash github]: https://cyan4973.github.io/xxHash/
