@@ -84,7 +84,7 @@ def check_invariant(Node n):
         check_invariant(child)
 ```
 
-The time cost of updating a file is proportional to the depth of that file in the filesystem, which can lead to increased overheads during a write.
+The time cost of updating a file is proportional to the height of that file in the filesystem, which can lead to increased overheads during a write.
 However, the algorithm need only climb "down" (towards the root of the tree) until it gets to an invalid directory; its ancestors that should already be invalid.
 Only the first invalidation climbs down to the root; everything else stops short.
 
@@ -149,10 +149,80 @@ I would use the Suh et al's experimental protocol for measuring system runtimes 
 Then, I would use Bayesian statistics to compute the distribution of runtime performance with and without MTFS.
 I expect MTFS to usually outpreform vanilla for a microbenchmark constructing a Merkle Tree in all cases except the 100%-of-files-changed case.
 I expect macrobenchmarks (`rsync` and `git`) runtimes on MTFS to somewhat preform non-MTFS, since the macrobenchmarks have other operations that MTFS doesn't improve.
-I expect the deep filesystems with few changes will incur the greatest write overhead in MTFS; it requires invalidations all the way up the tree, and those invalidations are not amortized across many writes.
+I expect the 'tall' filesystems with few changes will incur the greatest write overhead in MTFS; it requires invalidations all the way up the tree, and those invalidations are not amortized across many writes.
 If the macrobenchmark performance is usually faster by more than 10% and 2 seconds and the write performance is not slower by 10% or 30ms, then I would conclude that MTFS could be useful in those applications and use-case sizes.
 
-# License for this file
+## Future work
+
+The actual stored Merkle Tree could be a relaxation or augmentation of the file tree.
+Consider the following tree
+
+```
+/
+/0
+/0/0
+/0/1
+/0/2
+/0/3
+/1/
+/1/0
+/1/1
+/1/2
+/1/3
+
+```
+
+The default file tree in JSON is
+
+```
+{
+  "0": {"0": data, "1": data, "2": data, "3": data},
+  "1": {"0": data, "1": data, "2": data, "3": data}
+}
+```
+
+A relaxation of this is:
+
+```
+{
+  "0/0": data,
+  "0/1": data,
+  "0/2": data,
+  "0/3": data,
+  "1/0": data,
+  "1/1": data,
+  "1/2": data,
+  "1/3": data
+}
+```
+
+Relaxation decreases height and increases the arity.
+`/0` and `/1` do not need to be explicitly stored because their existence is implied by their children `/0/0` and `/1/0`.
+
+Alternatively, an augmentation does the opposite:
+```
+{
+  "0": {
+    "_a": {"0": data, "1": data},
+    "_b": {"2": data, "3": data},
+  },
+
+  "1": {
+    "_a": {"0": data, "1": data},
+    "_b": {"2": data, "3": data},
+  }
+}
+```
+
+Augmentation introduces nodes which are not present in the filesystem.
+This increases height and decreases arity.
+One needs an extra bit saying if a particular interior node is a true directory on the filesystem or an augmentation.
+
+Decreasing the arity makes hashing the directory faster, while decreasing the height makes invalidating a node faster.
+Therefore, augmentation and relaxation allow us to tradeoff these two quantities.
+If we encounter an abnormally heigh tree or an abnormally high arity node, we might use relaxation and augmentation to improve performance.
+
+## License for this file
 
 <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
 
