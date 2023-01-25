@@ -32,12 +32,19 @@ These operations are commonly applied in file synchronization and version contro
   `rsync` has options to compare files either by modification time or by hash.
   Modification time is fast (as fast as reading file metadata), but is prone to false-positives (two subsequent `wget -O- $URL | tar xz` will have different modification time) and false-negatives.
   A more robust approach is to use file hashes, but then `rsync` has to calculate and compare these hashes on-the-fly.
+  Other solutions, like DropBox use `inotify` to learn of file system changes; however, inotify doesn't know about changes that occur while the inotify daemon is not running, so every startup the system has to do a full enumeration of all files, to see if any have changed.
   If a Merkle Tree was maintained at the OS-level, it could accelerate `rsync`'s determination of which files are different.
 
 - Version control systems like `git` already use a Merkle Tree to deduplicate and efficiently compute different revisions of the source tree.
   Since large tech companies shifted towards monorepos, their codebases hit up against the scaling limits of `git` [[Goode and Rain][Goode and Rain]].
   Even a simple `git status` on a big repository can take seconds to complete which slows down development as `git status` is almost as frequent as `ls`.
   If the OS maintained a Merkle Tree, `git status` and other operations could be faster.
+  Git also has `core.fsmonitor`, which uses inotify to accelerate some operations, and suffers from the same problems as DropBox above.
+
+- Antivirus scanners, build systems, workflow managers and webservers with `--watch` need to know if the underlying files have changed since the last time they were scanned or compiled.
+  They have varying strategies; AV scanners periodically rescan, since they cannot trust that the filesystem time has not been tampered with.
+  Build systems and workflow managers generally check the modification time or hash, which as with rsync, is either error-prone or expensive.
+  Webservers with `--watch` generally use inotify, which means they always have to do a fresh build when they start up.
 
 Merkle Tree algorithms give a speedup on random changes to the file tree, but the real world should benefit even more than those results would predict.
 In the real world, file changes are not random; they are often localized to just a few high-churn directories.
