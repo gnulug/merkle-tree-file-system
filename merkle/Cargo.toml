@@ -1,0 +1,7 @@
+[package]
+name = "merkle"
+description = "A very very very very interesting description"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
