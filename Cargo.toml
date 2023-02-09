@@ -5,3 +5,6 @@ members = [
 
 [profile.release]
 lto = true
+
+[workspace.dependencies]
+fuser = "0.12.0"
